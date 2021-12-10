@@ -1,9 +1,10 @@
-;;
-;;
-;;
-(defvar serialspeed "115200")
-(defvar serialport "/dev/ttyACM0")
+;;; -*- lexical-binding: t; -*-
 (defvar serialbasename "serial")
+(defvar defserialspeed "115200")
+(defvar defserialport "/dev/ttyACM0")
+;;(setq defserialspeed "115200")
+;;(setq defserialport "/dev/ttyACM0")
+
 (require 'term)
 
 
@@ -12,51 +13,51 @@
    (list
     (read-string
      (format "Serial Port (%s): "
-	     serialport)
+	     defserialport)
      nil nil
-     serialport)
+     defserialport)
     (read-string
      (format "Speed (%s): "
-	     serialspeed)
+	     defserialspeed)
      nil nil
-     serialspeed)))
+     defserialspeed)))
   (setq uniqueid (format "%04x" (random (expt 16 4))))
   (setq serialid (concat serialbasename "-" uniqueid))
   (setq buffname (concat serialid "-buffer"))
-  (setq termname (concat serialid "-term"))
-  (set 'bufferid (get-buffer-create buffname))
+  (setq bufferid (get-buffer-create buffname))
+  (setq termname (concat serialbasename "-" uniqueid "-term"))
   (make-serial-process
    :speed (string-to-number serialspeed)
    :port serialport
    :name termname
    :buffer buffname)
-  (switch-to-buffer buffname)
-  (with-current-buffer buffname
-    (term-mode))
-  (with-current-buffer buffname
-    (term-char-mode))
+  (switch-to-buffer bufferid)
+  (term-mode)
+  (term-char-mode)
+  (make-local-variable 'buffname)
+  (make-local-variable 'bufferid)
+  (make-local-variable 'termname)
+  (set (make-local-variable 'serialspeed) serialspeed)
+  (set (make-local-variable 'serialport) serialport)
   (local-set-key (kbd "M-r") #'resetserial)
   (local-set-key (kbd "M-k") #'killserial)
   (local-set-key (kbd "M-x") #'execute-extended-command)
   (local-set-key (kbd "M-o") #'ace-window)
-  (make-variable-buffer-local 'serialid)
-  (make-variable-buffer-local 'buffname)
-  (make-variable-buffer-local 'termname)
   (message "Started Serial Terminal"))
 
 (defun resetserial ()
   (interactive)
   (make-serial-process
-   :speed (string-to-number serialspeed)
    :port serialport
-   :name "serialterm"
-   :buffer "serialbuffer")
+   :speed (string-to-number serialspeed)
+   :name termname
+   :buffer bufferid)
   (message "Restarted Serial Terminal"))
 
 
 (defun killserial ()
   (interactive)
-  (delete-process "serialterm"))
+  (delete-process termname))
 
 (global-set-key (kbd "C-c s") #'setupserial)
 
